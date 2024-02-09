@@ -13,18 +13,23 @@ fn main() {
         String::from("Grappling Tool"),
         String::from("Elucidator"),
     ]);
-    toolsearcher
-        .add_search_character('e')
-        .expect("should be able to search with an e");
+
+    write!(stdout, "\n\n\n\n\n").expect("should be able to make newlines");
+
     for input_key in stdin.keys() {
         match input_key.expect("should be a standard character") {
             Key::Char('q') => break,
-            Key::Char(character) => write!(stdout, "{character}").unwrap(),
+            Key::Char(character) => {
+                match toolsearcher.add_search_character(character) {
+                    Ok(search_string) => write!(stdout, "{}{search_string}", termion::cursor::Left(99)),
+                    Err(_) => write!(stdout, "can't add that"),
+                }
+                .expect("should be able to write");
+            }
             Key::Backspace | Key::Delete => toolsearcher.remove_search_character(),
-                //toolsearcher.add_search_character(character),
             _ => continue,
         }
-        stdout.flush().unwrap();
+        stdout.flush().expect("should be able to flush stdout");
     }
     write!(stdout, "Searcher: {:?}", toolsearcher.search_results()).unwrap();
 }
