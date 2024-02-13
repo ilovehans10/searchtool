@@ -44,7 +44,6 @@ impl SelectionView {
             termion::terminal_size().expect("should be able to get terminal width");
         let clearing_string: String = " ".repeat(term_width.into());
         let stdin = stdin();
-        self.screen[1] = String::from("hello");
 
         for input_key in stdin.keys() {
             self.screen[4] = clearing_string.clone();
