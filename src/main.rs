@@ -26,17 +26,45 @@ impl SelectionView {
     }
 
     fn printinfo(&mut self) {
-        write!(&mut self.output, "{}", termion::cursor::Up(5))
-            .expect("should be able to write to stdout");
-        for line in &self.screen {
-            write!(
-                &mut self.output,
-                "{}{line}{}",
-                termion::cursor::Down(1),
-                termion::cursor::Left(99)
-            )
-            .expect("should be able to write to stdout");
+        let (term_width, _) =
+            termion::terminal_size().expect("should be able to get terminal width");
+        let clearing_string: String = " ".repeat(term_width.into());
+        write!(
+            &mut self.output,
+            "{}{}",
+            termion::cursor::Left(term_width),
+            termion::cursor::Up(4)
+        )
+        .expect("should be able to write to stdout");
+
+        for (index, line) in self.screen.iter().enumerate() {
+            if index == 3 {
+                write!(
+                    self.output,
+                    "{}{clearing_string}{}",
+                    termion::cursor::Down(1),
+                    termion::cursor::Left(term_width)
+                )
+                .expect("should be able to write to stdout");
+            } else {
+                write!(
+                    &mut self.output,
+                    "{}{clearing_string}{}{line}{}",
+                    termion::cursor::Down(1),
+                    termion::cursor::Left(term_width),
+                    termion::cursor::Left(term_width)
+                )
+                .expect("should be able to write to stdout");
+            }
         }
+        write!(
+            &mut self.output,
+            "{}{clearing_string}{}{}",
+            termion::cursor::Up(1),
+            termion::cursor::Left(term_width),
+            self.screen[3]
+        )
+        .expect("should be able to write to stdout");
     }
 
     fn input_loop(&mut self) {
@@ -48,10 +76,28 @@ impl SelectionView {
         for input_key in stdin.keys() {
             self.screen[4] = clearing_string.clone();
             match input_key.expect("should be a standard character") {
-                Key::Char('q') => break,
+                Key::Char('q') => {
+                    writeln!(
+                        &mut self.output,
+                        "{}{}\n{:?}{}",
+                        termion::cursor::Down(1),
+                        termion::cursor::Left(term_width),
+                        self.selection_searcher.search_results(),
+                        termion::cursor::Left(term_width)
+                    )
+                    .expect("should be able to write to stdout");
+                    break;
+                }
                 Key::Char(character) => {
                     match self.selection_searcher.add_search_character(character) {
-                        Ok(search_string) => self.screen[3] = search_string,
+                        Ok(search_string) => {
+                            let mut results = self.selection_searcher.search_results();
+                            results.truncate(3);
+                            for (index, line) in results.iter().enumerate() {
+                                self.screen[index] = line.clone();
+                            }
+                            self.screen[3] = search_string;
+                        }
                         Err(reductivesearch::SearcherError::NoneFound(character)) => {
                             self.screen[4] = format!("Can't add character: '{character}'");
                         }
