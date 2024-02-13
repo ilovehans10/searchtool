@@ -1,5 +1,4 @@
 use reductivesearch::reductivesearch;
-use ::reductivesearch::reductivesearch::Searcher;
 use std::io::{stdin, stdout, Stdout, Write};
 use termion::{
     event::Key,
