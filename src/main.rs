@@ -91,11 +91,6 @@ impl SelectionView {
                 Key::Char(character) => {
                     match self.selection_searcher.add_search_character(character) {
                         Ok(search_string) => {
-                            let mut results = self.selection_searcher.search_results();
-                            results.truncate(3);
-                            for (index, line) in results.iter().enumerate() {
-                                self.screen[index] = line.clone();
-                            }
                             self.screen[3] = search_string;
                         }
                         Err(reductivesearch::SearcherError::NoneFound(character)) => {
@@ -104,8 +99,15 @@ impl SelectionView {
                         Err(error) => panic!("error encountered: {error}"),
                     }
                 }
-                Key::Backspace | Key::Delete => self.selection_searcher.remove_search_character(),
+                Key::Backspace | Key::Delete => {
+                    self.screen[3] = self.selection_searcher.remove_search_character();
+                }
                 _ => continue,
+            }
+            let mut results = self.selection_searcher.search_results();
+            results.truncate(3);
+            for (index, line) in results.iter().enumerate() {
+                self.screen[index] = line.clone();
             }
             self.printinfo();
             self.output.flush().expect("should be able to flush stdout");
@@ -122,6 +124,10 @@ fn main() {
         String::from("Portal Gun"),
         String::from("Grappling Tool"),
         String::from("Elucidator"),
+        String::from("Long Fall Boots"),
+        String::from("Web Slinger"),
+        String::from("Modular Web Slinger"),
+        String::from("Hither Thither Staff"),
     ]);
     let mut view_handler = SelectionView::new(toolsearcher, stdout);
     view_handler.setup();
