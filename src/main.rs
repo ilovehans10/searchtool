@@ -21,10 +21,6 @@ impl SelectionView {
         }
     }
 
-    fn setup(&mut self) {
-        write!(self.output, "\n\n\n\n\n").expect("should be able to write to stdout");
-    }
-
     fn printinfo(&mut self) {
         let (term_width, _) =
             termion::terminal_size().expect("should be able to get terminal width");
@@ -41,16 +37,14 @@ impl SelectionView {
             if index == 3 {
                 write!(
                     self.output,
-                    "{}{clearing_string}{}",
-                    termion::cursor::Down(1),
+                    "\n{clearing_string}{}",
                     termion::cursor::Left(term_width)
                 )
                 .expect("should be able to write to stdout");
             } else {
                 write!(
                     &mut self.output,
-                    "{}{clearing_string}{}{line}{}",
-                    termion::cursor::Down(1),
+                    "\n{clearing_string}{}{line}{}",
                     termion::cursor::Left(term_width),
                     termion::cursor::Left(term_width)
                 )
@@ -72,6 +66,9 @@ impl SelectionView {
             termion::terminal_size().expect("should be able to get terminal width");
         let clearing_string: String = " ".repeat(term_width.into());
         let stdin = stdin();
+
+        self.printinfo();
+        self.output.flush().expect("should be able to flush stdout");
 
         for input_key in stdin.keys() {
             self.screen[4] = clearing_string.clone();
@@ -130,6 +127,5 @@ fn main() {
         String::from("Hither Thither Staff"),
     ]);
     let mut view_handler = SelectionView::new(toolsearcher, stdout);
-    view_handler.setup();
     view_handler.input_loop();
 }
