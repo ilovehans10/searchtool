@@ -44,9 +44,11 @@ impl SelectionView {
             } else {
                 write!(
                     &mut self.output,
-                    "\n{clearing_string}{}{line}{}",
+                    "\n{clearing_string}{}{}{line}{}{}",
                     termion::cursor::Left(term_width),
-                    termion::cursor::Left(term_width)
+                    termion::color::Fg(termion::color::Blue),
+                    termion::cursor::Left(term_width),
+                    termion::color::Fg(termion::color::Reset)
                 )
                 .expect("should be able to write to stdout");
             }
@@ -103,6 +105,9 @@ impl SelectionView {
             }
             let mut results = self.selection_searcher.search_results();
             results.truncate(3);
+            for index in results.len()..=2 {
+                self.screen[index] = clearing_string.clone();
+            }
             for (index, line) in results.iter().enumerate() {
                 self.screen[index] = line.clone();
             }
@@ -113,6 +118,7 @@ impl SelectionView {
 }
 
 fn main() {
+    println!("\n\n");
     let stdout = stdout()
         .into_raw_mode()
         .expect("should be able to put terminal into raw mode");
