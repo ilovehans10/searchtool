@@ -1,5 +1,8 @@
 use reductivesearch::reductivesearch;
-use std::io::{stdin, stdout, Stdout, Write};
+use std::{
+    cmp::Ordering,
+    io::{stdin, stdout, Stdout, Write},
+};
 use termion::{
     event::Key,
     input::TermRead,
@@ -8,7 +11,7 @@ use termion::{
 
 struct SelectionView {
     selection_searcher: reductivesearch::Searcher,
-    screen: Vec<String>,
+    screen: Vec<Option<String>>,
     output: RawTerminal<Stdout>,
 }
 
@@ -16,7 +19,7 @@ impl SelectionView {
     fn new(selection_searcher: reductivesearch::Searcher, output: RawTerminal<Stdout>) -> Self {
         Self {
             selection_searcher,
-            screen: vec![String::new(); 5],
+            screen: vec![Some(String::new()); 5],
             output,
         }
     }
@@ -34,23 +37,38 @@ impl SelectionView {
         .expect("should be able to write to stdout");
 
         for (index, line) in self.screen.iter().enumerate() {
-            if index == 3 {
-                write!(
-                    self.output,
-                    "\n{clearing_string}{}",
-                    termion::cursor::Left(term_width)
-                )
-                .expect("should be able to write to stdout");
-            } else {
-                write!(
-                    &mut self.output,
-                    "\n{clearing_string}{}{}{line}{}{}",
-                    termion::cursor::Left(term_width),
-                    termion::color::Fg(termion::color::Blue),
-                    termion::cursor::Left(term_width),
-                    termion::color::Fg(termion::color::Reset)
-                )
-                .expect("should be able to write to stdout");
+            let line_string = &line.clone().unwrap_or_else(|| clearing_string.clone());
+            match index.cmp(&3) {
+                Ordering::Less => {
+                    write!(
+                        &mut self.output,
+                        "\n{clearing_string}{}{}{line_string}{}{}",
+                        termion::cursor::Left(term_width),
+                        termion::color::Fg(termion::color::Blue),
+                        termion::cursor::Left(term_width),
+                        termion::color::Fg(termion::color::Reset)
+                    )
+                    .expect("should be able to write to stdout");
+                }
+                Ordering::Equal => {
+                    write!(
+                        self.output,
+                        "\n{clearing_string}{}",
+                        termion::cursor::Left(term_width)
+                    )
+                    .expect("should be able to write to stdout");
+                }
+                Ordering::Greater => {
+                    write!(
+                        &mut self.output,
+                        "\n{clearing_string}{}{}{line_string}{}{}",
+                        termion::cursor::Left(term_width),
+                        termion::color::Fg(termion::color::Red),
+                        termion::cursor::Left(term_width),
+                        termion::color::Fg(termion::color::Reset)
+                    )
+                    .expect("should be able to write to stdout");
+                }
             }
         }
         write!(
@@ -58,7 +76,7 @@ impl SelectionView {
             "{}{clearing_string}{}{}",
             termion::cursor::Up(1),
             termion::cursor::Left(term_width),
-            self.screen[3]
+            self.screen[3].clone().expect("filter should be a string")
         )
         .expect("should be able to write to stdout");
     }
@@ -66,14 +84,13 @@ impl SelectionView {
     fn input_loop(&mut self) {
         let (term_width, _) =
             termion::terminal_size().expect("should be able to get terminal width");
-        let clearing_string: String = " ".repeat(term_width.into());
         let stdin = stdin();
 
         self.printinfo();
         self.output.flush().expect("should be able to flush stdout");
 
         for input_key in stdin.keys() {
-            self.screen[4] = clearing_string.clone();
+            self.screen[4] = None;
             match input_key.expect("should be a standard character") {
                 Key::Char('q') => {
                     writeln!(
@@ -90,26 +107,26 @@ impl SelectionView {
                 Key::Char(character) => {
                     match self.selection_searcher.add_search_character(character) {
                         Ok(search_string) => {
-                            self.screen[3] = search_string;
+                            self.screen[3] = Some(search_string);
                         }
                         Err(reductivesearch::SearcherError::NoneFound(character)) => {
-                            self.screen[4] = format!("Can't add character: '{character}'");
+                            self.screen[4] = Some(format!("Can't add character: '{character}'"));
                         }
                         Err(error) => panic!("error encountered: {error}"),
                     }
                 }
                 Key::Backspace | Key::Delete => {
-                    self.screen[3] = self.selection_searcher.remove_search_character();
+                    self.screen[3] = Some(self.selection_searcher.remove_search_character());
                 }
                 _ => continue,
             }
             let mut results = self.selection_searcher.search_results();
             results.truncate(3);
             for index in results.len()..=2 {
-                self.screen[index] = clearing_string.clone();
+                self.screen[index] = None;
             }
             for (index, line) in results.iter().enumerate() {
-                self.screen[index] = line.clone();
+                self.screen[index] = Some(line.clone());
             }
             self.printinfo();
             self.output.flush().expect("should be able to flush stdout");
