@@ -92,7 +92,7 @@ impl SelectionView {
         for input_key in stdin.keys() {
             self.screen[4] = None;
             match input_key.expect("should be a standard character") {
-                Key::Char('q') => {
+                Key::Char('\n') => {
                     writeln!(
                         &mut self.output,
                         "{}{}\n{:?}{}",
@@ -135,7 +135,7 @@ impl SelectionView {
 }
 
 fn main() {
-    println!("\n\n");
+    println!("Enter will quit the program.\n\n\n");
     let stdout = stdout()
         .into_raw_mode()
         .expect("should be able to put terminal into raw mode");
