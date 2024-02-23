@@ -45,7 +45,7 @@ impl SelectionView {
         for (index, line) in self.screen.iter().enumerate() {
             // This either returns a reference to the string inside the option or a reference to
             // the clearing string
-            let line_string  = line.as_ref().unwrap_or(&clearing_string);
+            let line_string = line.as_ref().unwrap_or(&clearing_string);
             match index.cmp(&3) {
                 // indexes less than three are the strings filtered by the searcher
                 Ordering::Less => {
