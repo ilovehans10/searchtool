@@ -37,7 +37,7 @@ impl SelectionView {
         .expect("should be able to write to stdout");
 
         for (index, line) in self.screen.iter().enumerate() {
-            let line_string = &line.clone().unwrap_or_else(|| clearing_string.clone());
+            let line_string  = line.as_ref().unwrap_or(&clearing_string);
             match index.cmp(&3) {
                 Ordering::Less => {
                     write!(
