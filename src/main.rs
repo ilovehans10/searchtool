@@ -9,6 +9,7 @@ use termion::{
     raw::{IntoRawMode, RawTerminal},
 };
 
+// SelectionView is a singleton that controls the Searcher and its associated data
 struct SelectionView {
     selection_searcher: reductivesearch::Searcher,
     screen: Vec<Option<String>>,
@@ -16,6 +17,7 @@ struct SelectionView {
 }
 
 impl SelectionView {
+    // Creates a new selection_searcher with an empty screen
     fn new(selection_searcher: reductivesearch::Searcher, output: RawTerminal<Stdout>) -> Self {
         Self {
             selection_searcher,
@@ -24,10 +26,14 @@ impl SelectionView {
         }
     }
 
+    // printinfo prints all lines of selected items, the users input, and any errors
     fn printinfo(&mut self) {
+        // The clearing string is used for clearing the old data out of a line
         let (term_width, _) =
             termion::terminal_size().expect("should be able to get terminal width");
         let clearing_string: String = " ".repeat(term_width.into());
+
+        // This moves the cursor into position at the top left before printing info
         write!(
             &mut self.output,
             "{}{}",
@@ -37,8 +43,11 @@ impl SelectionView {
         .expect("should be able to write to stdout");
 
         for (index, line) in self.screen.iter().enumerate() {
+            // This either returns a reference to the string inside the option or a reference to
+            // the clearing string
             let line_string  = line.as_ref().unwrap_or(&clearing_string);
             match index.cmp(&3) {
+                // indexes less than three are the strings filtered by the searcher
                 Ordering::Less => {
                     write!(
                         &mut self.output,
@@ -50,6 +59,8 @@ impl SelectionView {
                     )
                     .expect("should be able to write to stdout");
                 }
+                // Index three is the search string, but only the clearing string is printed as the
+                // search string is the last thing printed
                 Ordering::Equal => {
                     write!(
                         self.output,
@@ -58,6 +69,7 @@ impl SelectionView {
                     )
                     .expect("should be able to write to stdout");
                 }
+                // Indexes greater than three are where errors are stored
                 Ordering::Greater => {
                     write!(
                         &mut self.output,
@@ -71,6 +83,8 @@ impl SelectionView {
                 }
             }
         }
+        // The search string is printed last so that the cursor is positioned properly at the end
+        // of it
         write!(
             &mut self.output,
             "{}{clearing_string}{}{}",
@@ -120,8 +134,11 @@ impl SelectionView {
                 }
                 _ => continue,
             }
+
+            // results is a vec of all filtered strings which is then shortened to just 3 items
             let mut results = self.selection_searcher.search_results();
             results.truncate(3);
+            // This loop clears old data out of the list indexes that aren't going to have strings
             for index in results.len()..=2 {
                 self.screen[index] = None;
             }
@@ -129,6 +146,8 @@ impl SelectionView {
                 self.screen[index] = Some(line.clone());
             }
             self.printinfo();
+            // Flushing the stdout only at the end of the loop makes sure that all information is
+            // printed at the same time
             self.output.flush().expect("should be able to flush stdout");
         }
     }
@@ -150,5 +169,6 @@ fn main() {
         String::from("Hither Thither Staff"),
     ]);
     let mut view_handler = SelectionView::new(toolsearcher, stdout);
+
     view_handler.input_loop();
 }
